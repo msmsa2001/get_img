@@ -1,0 +1,24 @@
+
+  .pdf-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .pdf-canvas-container {
+    position: relative;
+    margin-top: 20px;
+    overflow: hidden;
+    display: inline-block;
+  }
+
+  canvas {
+    border: 1px solid #000;
+    cursor: move;
+  }
+
+  /* Optional: Styling for the selection box */
+  .selection-box {
+    position: absolute;
+    border: 2px solid red;
+    pointer-events: none;
+  }

@@ -9,8 +9,7 @@ import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf'; // Using legacy build
 export class AppComponent {
   @ViewChild('pdfCanvas', { static: false }) pdfCanvas!: ElementRef<HTMLCanvasElement>;
   private pdfDoc: any;
-  private currentPage: number = 1; // Current page number
-  private totalPages: number = 0; // Total pages in the PDF
+  private page: any;
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
   private cropStartX: number = 0;
@@ -20,7 +19,7 @@ export class AppComponent {
   private isSelecting: boolean = false;
 
   constructor() {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js';
     this.canvas = document.createElement('canvas');
     this.context = this.canvas.getContext('2d')!;
@@ -37,23 +36,16 @@ export class AppComponent {
         // Load the PDF document
         const pdfDoc = await pdfjsLib.getDocument({ data: typedArray }).promise;
         this.pdfDoc = pdfDoc;
-        this.totalPages = pdfDoc.numPages;
-        this.renderPage(this.currentPage); // Render the first page
+        this.renderPage(1); // Render the first page
       };
       fileReader.readAsArrayBuffer(file);
     }
   }
 
-  // Render a specific page of the PDF
+  // Render the page of the PDF
   async renderPage(pageNumber: number) {
-    if (pageNumber < 1 || pageNumber > this.totalPages) {
-      return;
-    }
-
-    this.currentPage = pageNumber; // Update current page
-    const page = await this.pdfDoc.getPage(pageNumber);
-    const viewport = page.getViewport({ scale: 1.5 });
-
+    this.page = await this.pdfDoc.getPage(pageNumber);
+    const viewport = this.page.getViewport({ scale: 1.5 });
     this.canvas.height = viewport.height;
     this.canvas.width = viewport.width;
 
@@ -62,12 +54,12 @@ export class AppComponent {
       viewport: viewport
     };
 
-    // Render the page onto the canvas
-    await page.render(renderContext).promise;
+    // Render the page
+    await this.page.render(renderContext).promise;
     this.displayCanvas();
   }
 
-  // Display the rendered canvas on the DOM
+  // Display the rendered canvas
   displayCanvas() {
     const canvasElement = this.pdfCanvas.nativeElement;
     const ctx = canvasElement.getContext('2d')!;
@@ -76,21 +68,7 @@ export class AppComponent {
     ctx.drawImage(this.canvas, 0, 0);
   }
 
-  // Go to the previous page
-  goToPreviousPage() {
-    if (this.currentPage > 1) {
-      this.renderPage(this.currentPage - 1);
-    }
-  }
-
-  // Go to the next page
-  goToNextPage() {
-    if (this.currentPage < this.totalPages) {
-      this.renderPage(this.currentPage + 1);
-    }
-  }
-
-  // Start cropping
+  // Handle the mouse down event to start cropping
   startCrop(event: MouseEvent) {
     this.isSelecting = true;
     this.cropStartX = event.offsetX;
@@ -99,7 +77,7 @@ export class AppComponent {
     this.cropHeight = 0;
   }
 
-  // Handle mouse move for cropping
+  // Handle the mouse move event to update the selection area
   onMouseMove(event: MouseEvent) {
     if (this.isSelecting) {
       this.cropWidth = event.offsetX - this.cropStartX;
@@ -111,9 +89,10 @@ export class AppComponent {
     }
   }
 
-  // End cropping
+  // Handle the mouse up event to finalize the crop selection
   endCrop() {
     if (this.cropWidth === 0 || this.cropHeight === 0) {
+      // Invalid selection, exit the crop
       this.isSelecting = false;
       return;
     }
@@ -130,7 +109,7 @@ export class AppComponent {
     ctx.drawImage(this.canvas, 0, 0);
   }
 
-  // Draw the selection box for cropping
+  // Draw the selection area (crop box) on the canvas
   drawSelectionArea() {
     const canvasElement = this.pdfCanvas.nativeElement;
     const ctx = canvasElement.getContext('2d')!;
@@ -161,13 +140,14 @@ export class AppComponent {
     const imageData = ctx.getImageData(this.cropStartX, this.cropStartY, this.cropWidth, this.cropHeight);
     croppedCtx.putImageData(imageData, 0, 0);
 
-    // Display the cropped image and offer a download option
+    // Display the cropped image and offer download option
     const croppedDataUrl = croppedCanvas.toDataURL();
     this.displayCroppedImage(croppedDataUrl);
   }
 
-  // Display the cropped image and provide a download link
+  // Display the cropped image and offer a download option
   displayCroppedImage(dataUrl: string) {
+    // Create an image element to show the cropped image
     const img = new Image();
     img.src = dataUrl;
     img.onload = () => {
